@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+/* Custom styling for tiptap editor */
+.ProseMirror {
+  outline: none;
+  min-height: 400px;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+
+.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror pre {
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.8rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+
+.ProseMirror th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.ProseMirror td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem;
+}
+
+@media print {
+  body {
+    background-color: white !important;
+  }
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}
