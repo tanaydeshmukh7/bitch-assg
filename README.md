@@ -149,7 +149,7 @@ Email confirmation must remain enabled in **Supabase Dashboard → Authenticatio
 - Redirect URL: `http://localhost:5173/auth/callback`
 - If other local hosts are used, add their exact callback URL separately (for example `http://127.0.0.1:5173/auth/callback`).
 
-The frontend requests confirmation emails with `/auth/callback` as `emailRedirectTo`. The callback exchanges Supabase's one-time `code` using `exchangeCodeForSession`; it does not mark users confirmed itself. Expired, invalid, or already-consumed links show a resend form. The application deliberately does not retry rate-limited email requests.
+The frontend requests confirmation emails with the exact `${window.location.origin}/auth/callback` value as `emailRedirectTo`. The callback detects one flow at a time: PKCE `code` values are exchanged with `exchangeCodeForSession`, `token_hash` links with `type=email` or `type=signup` use `verifyOtp`, and implicit-flow fragments are consumed by the configured Supabase client. One-time PKCE codes are marked in session storage so the callback does not exchange the same code repeatedly. The callback does not mark users confirmed itself. Expired, invalid, or already-consumed links show a resend form. The application deliberately does not retry rate-limited email requests.
 
 For reliable delivery beyond Supabase's built-in email limits, configure a provider in **Supabase Dashboard → Authentication → Emails / SMTP Settings**. Enter the provider's SMTP host, port, username, password, sender email, and sender name according to that provider's documentation, then save and send a test email. Never put SMTP credentials or `SUPABASE_SECRET_KEY` in frontend variables. The confirmation email template should retain Supabase's confirmation URL variable:
 

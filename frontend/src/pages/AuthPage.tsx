@@ -16,8 +16,11 @@ export const AuthPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState('');
+  const [resendSubmitting, setResendSubmitting] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const { signIn, signUp, resetPassword, loginAsDemoUser, user, isSupabaseConfigured } = useAuth();
+  const { signIn, signUp, resendConfirmation, resetPassword, loginAsDemoUser, user, isSupabaseConfigured } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +28,14 @@ export const AuthPage: React.FC = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((remaining) => Math.max(remaining - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +50,7 @@ export const AuthPage: React.FC = () => {
       } else if (mode === 'signup') {
         await signUp(email, password, fullName);
         if (isSupabaseConfigured) {
+          setPendingConfirmationEmail(email.trim().toLowerCase());
           setSuccess('Account created! Please check your email for the confirmation link or sign in.');
         } else {
           navigate('/dashboard');
@@ -48,9 +60,32 @@ export const AuthPage: React.FC = () => {
         setSuccess('Password reset link sent to your email.');
       }
     } catch (err: any) {
+      if (
+        mode === 'signin' &&
+        typeof err?.message === 'string' &&
+        err.message.toLowerCase().includes('email not confirmed')
+      ) {
+        setPendingConfirmationEmail(email.trim().toLowerCase());
+      }
       setError(formatAuthError(err, mode === 'signup' ? 'signup' : mode === 'signin' ? 'signin' : 'resend'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!pendingConfirmationEmail || resendSubmitting || resendCooldown > 0) return;
+    setResendSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await resendConfirmation(pendingConfirmationEmail);
+      setSuccess('If this account is pending confirmation, Supabase has sent another email. Check your inbox and spam folder.');
+      setResendCooldown(30);
+    } catch (err: unknown) {
+      setError(formatAuthError(err, 'resend'));
+    } finally {
+      setResendSubmitting(false);
     }
   };
 
@@ -189,6 +224,24 @@ export const AuthPage: React.FC = () => {
                 )}
               </button>
             </form>
+
+            {isSupabaseConfigured && pendingConfirmationEmail && mode !== 'reset' && (
+              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                <p>Didn’t receive the confirmation email?</p>
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendSubmitting || resendCooldown > 0}
+                  className="mt-2 font-semibold text-blue-700 disabled:opacity-50"
+                >
+                  {resendSubmitting
+                    ? 'Sending...'
+                    : resendCooldown > 0
+                      ? `Try again in ${resendCooldown}s`
+                      : 'Send confirmation email again'}
+                </button>
+              </div>
+            )}
 
             <div className="mt-6 pt-6 border-t border-slate-200 text-center text-xs text-slate-600">
               {mode === 'signin' ? (

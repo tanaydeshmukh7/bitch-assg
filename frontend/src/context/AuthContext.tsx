@@ -153,9 +153,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Email confirmation is unavailable in demo mode.');
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new Error('Enter your email address before requesting a confirmation email.');
+    }
+
     const { error } = await supabase.auth.resend({
       type: 'signup',
-      email,
+      email: normalizedEmail,
       options: { emailRedirectTo: authRedirectUrl() },
     });
     if (error) throw error;

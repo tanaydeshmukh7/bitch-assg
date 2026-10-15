@@ -35,7 +35,9 @@ export const AuthCallbackPage: React.FC = () => {
       }
 
       const errorDescription = searchParams.get('error_description');
-      if (errorDescription) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const hashError = hashParams.get('error_description') || hashParams.get('error');
+      if (errorDescription || hashError) {
         if (active) {
           setStatus('error');
           setMessage('This confirmation link is invalid, expired, or was already used. Request a new email below.');
@@ -45,17 +47,42 @@ export const AuthCallbackPage: React.FC = () => {
 
       try {
         const code = searchParams.get('code');
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            const { data: { session: existingSession } } = await supabase.auth.getSession();
-            if (!existingSession) throw error;
+        const tokenHash = searchParams.get('token_hash');
+        const tokenType = searchParams.get('type');
+        const hasHashAuthResponse =
+          window.location.hash.includes('access_token=') ||
+          window.location.hash.includes('error=');
+        if (!code && !tokenHash && !hasHashAuthResponse) {
+          throw new Error('No confirmation response was provided.');
+        }
+
+        if (tokenHash) {
+          if (tokenType !== 'email' && tokenType !== 'signup') {
+            throw new Error('Unsupported confirmation token type.');
+          }
+
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: tokenType,
+          });
+          if (error) throw error;
+        } else if (code) {
+          const processedCodeKey = `assignment-studio-auth-code:${code}`;
+          const alreadyProcessed = sessionStorage.getItem(processedCodeKey) === '1';
+
+          if (!alreadyProcessed) {
+            sessionStorage.setItem(processedCodeKey, '1');
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) {
+              const { data: { session: existingSession } } = await supabase.auth.getSession();
+              if (!existingSession?.user?.email_confirmed_at) throw error;
+            }
           }
         }
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          throw new Error('The confirmation link did not create a session.');
+        if (!session?.user || !session.user.email_confirmed_at) {
+          throw new Error('The confirmation link did not create a confirmed session.');
         }
 
         if (active) {
@@ -102,7 +129,7 @@ export const AuthCallbackPage: React.FC = () => {
           <Mail className="h-10 w-10 text-blue-600 mb-4" />
         )}
         <h1 className="text-xl font-bold text-slate-900">
-          {status === 'success' ? 'Email confirmed' : status === 'error' ? 'Confirmation failed' : 'Confirming email'}
+          {status === 'success' ? 'Email confirmed successfully' : status === 'error' ? 'Confirmation failed' : 'Confirming email'}
         </h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
 
